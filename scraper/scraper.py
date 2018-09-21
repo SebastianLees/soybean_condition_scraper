@@ -4,6 +4,8 @@
 import csv
 import re
 from datetime import datetime
+from io import BytesIO, StringIO
+from zipfile import ZipFile
 
 import requests
 from bs4 import BeautifulSoup
@@ -40,9 +42,14 @@ YEAR = 2016
 # Url to be interrogated
 URL = 'http://usda.mannlib.cornell.edu/MannUsda/viewDocumentInfo.do?documentID=1048'
 
+# File name to be extracted from ZIP archives at USDA website.
+EXTRACT_FILE = 'prog_all_tables.csv'
+
+# Outout file name
+OUTPUT_FILE = 'soybean_condition'
+
 # Set up script conditions
 states = [state.lower() for state in STATES]
-csv_file = 'prog_all_tables.csv'
 
 
 ################################################################################
@@ -67,9 +74,8 @@ def get_zip_files_links(url=URL, year=YEAR):
 
         for div in soup:
             links = div.findAll('a', attrs={'href': re.compile("^http://")})
-
             # Only retain zip files
-            links = [link for link in links if 'zip' in link]
+            links = [link['href'] for link in links if 'zip' in link]
 
         return links
 
@@ -77,6 +83,20 @@ def get_zip_files_links(url=URL, year=YEAR):
         raise Exception('URL could not be found, received {0} error'.format(
             str(page.status_code))
         )
+
+
+def extract_zip(link, extract_file=EXTRACT_FILE):
+    """
+    Takes a url links to a zip file, extracts it and returns the main report.
+
+    :param link: Zip file URL link (STR)
+    :return: CSV file.
+    """
+
+    zipfile = requests.get(link, stream=True)
+    zipfile = ZipFile(BytesIO(zipfile.content))
+
+    return zipfile.read(extract_file)
 
 
 def get_soybean_data(csv_file):
@@ -87,14 +107,29 @@ def get_soybean_data(csv_file):
     :return: A list of dictionary values
     """
 
+
     # Open CSV file
-    reader = csv.reader(open(csv_file, 'r', encoding='ISO-8859-1'))
+    reader = csv.reader(StringIO(csv_file.decode('ISO-8859-1')))
 
     # Container
     data = list()
+    week_ending = None
+    soybean_table_found = False
 
-    # Extract
+    # Extract data
     for row in reader:
+
+        # See if Soybean table exists and get week ending string
+        if row[0] == '35' and row[1] == 't':
+            if 'Soybean Condition' in row[2]:
+                soybean_table_found = True
+
+            if 'Week Ending' in row[2]:
+                week_ending = row[2].split('Week Ending', 1)
+                week_ending = week_ending[1].strip()
+                week_ending = clean_week_ending(week_ending)
+
+        # Get raw data
         if row[0] == '35' and row [1] == 'd':
             conditions = {
                 'Very poor': row[3],
@@ -105,16 +140,17 @@ def get_soybean_data(csv_file):
             }
 
             for key in conditions:
-                entry = {
-                    'Week ending': '2016-10-02',
-                    'State': row[2],
-                    'Condition': key,
-                    'Percent': conditions[key],
-                }
+                if conditions[key] != '-':
+                    entry = {
+                        'Week ending': week_ending,
+                        'State': row[2],
+                        'Condition': key,
+                        'Percent': conditions[key],
+                    }
 
-                data.append(entry)
+                    data.append(entry)
 
-    return data
+    return data, soybean_table_found
 
 
 def clean_soybean_data(data, states=states):
@@ -128,7 +164,7 @@ def clean_soybean_data(data, states=states):
     return [entry for entry in data if entry['State'].lower() in states]
 
 
-def create_output_file():
+def create_output_file(output_file=OUTPUT_FILE):
     """
     Creates output file for CSV data.
 
@@ -136,7 +172,7 @@ def create_output_file():
     """
 
     timestamp = datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
-    name = 'output/soybean_condition_' + timestamp + '.csv'
+    name = 'output/{0}_{1}.csv'.format(output_file, timestamp)
 
     with open(name, 'w') as output_file:
         dict_writer = csv.DictWriter(output_file, KEYS)
@@ -150,7 +186,8 @@ def write_to_output_file(file_name, data):
     Takes parsed data (in the form of a list of dictionaries) and writes
     it to the output csv file.
 
-    :param file_name: Path to the output file (STR)
+    :param file_name: Path to the output file (STR).
+    :param week_ending The week ending for the file (YYY-MM-DD)(STR).
     :param data: The data itself (LIST of DICT).
     """
 
@@ -159,15 +196,33 @@ def write_to_output_file(file_name, data):
         dict_writer.writerows(data)
 
 
+def clean_week_ending(week_ending):
+    """
+    Cleans a week ending string of type "November 6th 2005" to match the format
+    YYYY-MM-DD.
+
+    :param week_ending: Week ending (STR)
+    :return: Week ending (STR)
+    """
+
+    week_ending = datetime.strptime(week_ending, '%B %d, %Y')
+    week_ending = week_ending.strftime('%Y-%m-%d')
+
+    return week_ending
+
+
 if __name__ == '__main__':
-    # 1) Get the list of files to be downloaded based off year.
+    # 1) Get the list of files to be downloaded based off of YEAR setting value.
     links = get_zip_files_links()
 
     # 2) Create output file with headers.
-    file_name = create_output_file()
+    output_file = create_output_file()
 
-    # 3) Download and extract zip files, then process to output csv file.
+    # 3) Download and extract zip files, then clean them and output to csv file.
     for link in links:
-        a = get_soybean_data('prog_all_tables.csv')
-        a = clean_soybean_data(a)
-        write_to_output_file(file_name, a)
+        csv_file = extract_zip(link)
+        csv_data, soybean_table_exists = get_soybean_data(csv_file)
+
+        if soybean_table_exists:
+            csv_data_clean = clean_soybean_data(csv_data)
+            write_to_output_file(output_file, csv_data_clean)
