@@ -97,12 +97,18 @@ def extract_zip(link, extract_file=EXTRACT_FILE):
     """
 
     zipfile = requests.get(link, stream=True)
-    zipfile = ZipFile(BytesIO(zipfile.content))
 
-    return zipfile.read(extract_file)
+    if zipfile.status_code == 200:
+        zipfile = ZipFile(BytesIO(zipfile.content))
 
+        return zipfile.read(extract_file)
 
-def get_soybean_data(csv_file):
+    else:
+        raise Exception('Zip file could not be found, received {0} error'.format(
+            str(zipfile.status_code))
+        )
+
+def get_soybean_data(csv_file, decode_file=True):
     """
     Extract Soybean Condition data from raw file.
 
@@ -110,9 +116,11 @@ def get_soybean_data(csv_file):
     :return: A list of dictionary values
     """
 
-
     # Open CSV file
-    reader = csv.reader(StringIO(csv_file.decode('ISO-8859-1')))
+    if decode_file:
+        csv_file = csv_file.decode('ISO-8859-1')
+
+    reader = csv.reader(StringIO(csv_file))
 
     # Container
     data = list()
@@ -121,7 +129,6 @@ def get_soybean_data(csv_file):
 
     # Extract data
     for row in reader:
-
         # See if Soybean table exists and get week ending string
         if row[0] == '35' and row[1] == 't':
             if 'Soybean Condition' in row[2]:
@@ -208,15 +215,15 @@ def write_to_output_file(file_name, data):
         return True
 
     except Exception as e:
-        print ('Filed to extract Soybean condition data from {0}')\
-            .format(file_name)
+        print ('Failed to extract Soybean condition data from {0}'
+               .format(file_name))
 
         return False
 
 
 def clean_week_ending(week_ending):
     """
-    Cleans a week ending string of type "November 6th 2005" to match the format
+    Cleans a week ending string of type "November 6, 2005" to match the format
     YYYY-MM-DD.
 
     :param week_ending: Week ending (STR)
