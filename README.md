@@ -15,15 +15,11 @@ Soybean condition scraper is a small script that queries and stores soybean cond
 2) Install the Python dependencies from the requirements.txt file (you may wish you use a virtual environment).
 3) The script can be run manually (scraper.py) or scheduling can be set up.
 
-### Scheduling
-To set up basic scheduling (e.g. for 9am weekdays), add the following to your crontab file:
-0 9 * * 1-5 path/to/scraper.py
-
 ### Assumptions
 This is designed to be a simple script - features like logging, advanced dugging and custom functionality are not included.
 
 ### Deployment
-Deployment could vary. The simplest deployment is just running the script manually. You could also crontab and a local machine (as described above). For a more robust deployment there are a couple of options:
+Deployment could vary. The simplest deployment is just running the script manually. You could also crontab and a local machine (e.g. to check weekly). For a more robust deployment there are a couple of options:
 
 1) Deploy onto an AWS Lambda endpoint and schedule polling and monitoring via AWS also.
 2) Deploy onto a dedicated server / cloud based server and use celery for scheduling. Add logging handlers to email / txt admins in the event of ERROR or CRITICAL failure.
