@@ -51,7 +51,6 @@ OUTPUT_FILE = 'soybean_condition'
 # Set up script conditions
 states = [state.lower() for state in STATES]
 
-
 ################################################################################
 # Main script.
 ################################################################################
@@ -63,6 +62,8 @@ def get_zip_files_links(url=URL, year=YEAR):
 
     :return: List of links.
     """
+
+    print('Getting list of Zip files')
 
     page = requests.get(url)
     year = 'n' + str(year)
@@ -76,6 +77,8 @@ def get_zip_files_links(url=URL, year=YEAR):
             links = div.findAll('a', attrs={'href': re.compile("^http://")})
             # Only retain zip files
             links = [link['href'] for link in links if 'zip' in link]
+
+        print('{0} Zip files found'.format(len(links)))
 
         return links
 
@@ -129,6 +132,9 @@ def get_soybean_data(csv_file):
                 week_ending = week_ending[1].strip()
                 week_ending = clean_week_ending(week_ending)
 
+                print('Soybean condition data found for Week ending {0}'
+                      .format(week_ending))
+
         # Get raw data
         if row[0] == '35' and row [1] == 'd':
             conditions = {
@@ -178,6 +184,8 @@ def create_output_file(output_file=OUTPUT_FILE):
         dict_writer = csv.DictWriter(output_file, KEYS)
         dict_writer.writeheader()
 
+    print('Output file created: {0}'.format(name))
+
     return name
 
 
@@ -190,10 +198,20 @@ def write_to_output_file(file_name, data):
     :param week_ending The week ending for the file (YYY-MM-DD)(STR).
     :param data: The data itself (LIST of DICT).
     """
+    try:
+        with open(file_name, 'a') as output_file:
+            dict_writer = csv.DictWriter(output_file, KEYS)
+            dict_writer.writerows(data)
 
-    with open(file_name, 'a') as output_file:
-        dict_writer = csv.DictWriter(output_file, KEYS)
-        dict_writer.writerows(data)
+        print('Extracted Soybean condition data')
+
+        return True
+
+    except Exception as e:
+        print ('Filed to extract Soybean condition data from {0}')\
+            .format(file_name)
+
+        return False
 
 
 def clean_week_ending(week_ending):
@@ -211,7 +229,14 @@ def clean_week_ending(week_ending):
     return week_ending
 
 
-if __name__ == '__main__':
+def run():
+    """
+    Entry point for the script.
+    """
+
+    soybean_found = 0
+    soybean_extracted = 0
+
     # 1) Get the list of files to be downloaded based off of YEAR setting value.
     links = get_zip_files_links()
 
@@ -219,10 +244,24 @@ if __name__ == '__main__':
     output_file = create_output_file()
 
     # 3) Download and extract zip files, then clean them and output to csv file.
+    soybean_files = len(links)
+
     for link in links:
         csv_file = extract_zip(link)
         csv_data, soybean_table_exists = get_soybean_data(csv_file)
 
         if soybean_table_exists:
+            soybean_found += 1
             csv_data_clean = clean_soybean_data(csv_data)
-            write_to_output_file(output_file, csv_data_clean)
+            csv_output = write_to_output_file(output_file, csv_data_clean)
+            if csv_output:
+                soybean_extracted += 1
+
+    print('Found Soybean condition data in {0}/{1} files.'
+          .format(soybean_found, soybean_files))
+    print('Successfully extracted Soybean condition data from {0}/{1} files.'
+          .format(soybean_extracted, soybean_found))
+
+
+if __name__ == '__main__':
+    run()
