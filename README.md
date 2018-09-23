@@ -19,7 +19,7 @@ Soybean condition scraper is a small script that queries and stores soybean cond
 This is designed to be a simple script - features like logging, advanced debugging and custom functionality are not included.
 
 ### Deployment
-Deployment could vary. The simplest deployment is just running the script manually. You could also crontab and a local machine (e.g. to check weekly). For a more robust deployment there are a couple of options:
+Deployment could vary. The simplest deployment is just running the script manually. You could also crontab on a local machine (e.g. to check weekly). For a more robust deployment there are a couple of options:
 
 1) Deploy onto an AWS Lambda endpoint and schedule polling and monitoring via AWS also.
 2) Deploy onto a dedicated server / cloud based server and use celery for scheduling. Add logging handlers to email / txt admins in the event of ERROR or CRITICAL failure.
