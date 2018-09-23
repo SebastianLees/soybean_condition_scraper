@@ -6,7 +6,7 @@ from unittest.mock import patch, mock_open
 import pytest
 
 from scraper.scraper import get_zip_files_links, get_soybean_data, YEAR,\
-    clean_soybean_data, create_output_file, write_to_output_file, clean_week_ending
+    clean_soybean_data, create_output_file, clean_week_ending
 
 
 def mock_response(*args, **kwargs):
