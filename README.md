@@ -1,6 +1,6 @@
 # Soybean condition scraper
 
-Soybean condition scraper is a small script that queries and stores soybean condition data from the US National Agricultural Statistics Service (http://usda.mannlib.cornell.edu/MannUsda/viewDocumentInfo.do?documentID=1048). The script will scrape zipped csv data from the USNAS website for a specified year, and look to see if any information on soybean condition is contained within. It was output all collected data as a csv file of schema:
+Soybean condition scraper is a small script that queries and stores soybean condition data from the US National Agricultural Statistics Service (http://usda.mannlib.cornell.edu/MannUsda/viewDocumentInfo.do?documentID=1048). The script will scrape zipped csv data from the USNAS website for a specified year, and look to see if any information on soybean condition is contained within. It will output all collected data as a csv file of schema:
 
 - Week ending (YYYY-MM-DD)
 - State
