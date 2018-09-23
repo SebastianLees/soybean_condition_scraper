@@ -16,7 +16,7 @@ Soybean condition scraper is a small script that queries and stores soybean cond
 3) The script can be run manually (scraper.py) or scheduling can be set up.
 
 ### Assumptions
-This is designed to be a simple script - features like logging, advanced dugging and custom functionality are not included.
+This is designed to be a simple script - features like logging, advanced debugging and custom functionality are not included.
 
 ### Deployment
 Deployment could vary. The simplest deployment is just running the script manually. You could also crontab and a local machine (e.g. to check weekly). For a more robust deployment there are a couple of options:
